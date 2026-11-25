@@ -62,6 +62,57 @@ def apply_preset():
         st.session_state[key] = float(val)
 
 
+def render_about_section():
+    """Render the About section below the prediction form."""
+    st.divider()
+    st.header("About")
+    st.markdown(
+        """
+The goal of this project is to build a **Linear Regression** model to predict housing prices based on features from the accompanying dataset: `house_prices.csv`.
+
+### About the Dataset (`house_prices.csv`)
+
+This is the classic **California Housing** dataset containing **20,640** block group records:
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `MedInc` | Feature | Median income in the block group |
+| `HouseAge` | Feature | Median house age in the block group |
+| `AveRooms` | Feature | Average number of rooms per household |
+| `AveBedrms` | Feature | Average number of bedrooms per household |
+| `Population` | Feature | Block group population |
+| `AveOccup` | Feature | Average household members (occupancy) |
+| `Latitude` / `Longitude` | Feature | Geographical coordinates |
+| `MedHouseVal` | Target ($y$) | Median house value (in \\$100,000s) — what the model predicts |
+
+### Complete End-to-End Workflow
+
+1. **Load & Inspect Data:**
+```python
+import pandas as pd
+
+df = pd.read_csv("house_prices.csv")
+df.info()
+df.describe()
+```
+
+2. **Exploratory Data Analysis (EDA):**
+   - Check correlation between features and `MedHouseVal` (e.g., using `df.corr()`).
+   - Plot feature distributions and correlation heatmaps.
+
+3. **Split Data:**
+   - Separate predictors ($X$) and target ($y = \\text{MedHouseVal}$).
+   - Split into train (80%) and test (20%) using `train_test_split`.
+
+4. **Train Model:**
+   - Fit `LinearRegression` using `model.fit(X_train, y_train)`.
+
+5. **Evaluate:**
+   - Test predictions using $R^2$ Score, Mean Squared Error (MSE), and Root Mean Squared Error (RMSE).
+"""
+    )
+
+
 def prediction_page():
     """Render the house price prediction form page."""
     model = load_model()
@@ -98,6 +149,8 @@ def prediction_page():
             abs(val - preset_val) < 1e-6 for val, preset_val in zip(input_values, preset["values"])
         ):
             st.info(f"Actual House Price: ${preset['actual'] * 100000:,.2f}")
+
+    render_about_section()
 
 
 pages = [
