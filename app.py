@@ -49,6 +49,12 @@ def load_model():
     return joblib.load(MODEL_PATH)
 
 
+@st.cache_data
+def load_model_bytes():
+    """Read raw bytes of the trained model file for download."""
+    return MODEL_PATH.read_bytes()
+
+
 def apply_preset():
     """Populate input fields in session state from the selected preset."""
     selected = PRESETS[st.session_state["preset_choice"]]
@@ -100,4 +106,17 @@ pages = [
 ]
 
 pg = st.navigation(pages)
+
+with st.sidebar:
+    st.divider()
+    model_bytes = load_model_bytes()
+    st.caption(f"Model: `house_price_model.pkl` ({len(model_bytes) / 1024:.2f} KB)")
+    st.download_button(
+        label="Download Model (.pkl)",
+        data=model_bytes,
+        file_name="house_price_model.pkl",
+        mime="application/octet-stream",
+        width="stretch",
+    )
+
 pg.run()
