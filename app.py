@@ -1,7 +1,11 @@
-import streamlit as st
-import joblib
+from pathlib import Path
 
-model = joblib.load("house_price_model.pkl")
+import joblib
+import streamlit as st
+
+st.set_page_config(page_title="House Price Prediction", layout="wide")
+
+MODEL_PATH = Path(__file__).parent / "house_price_model.pkl"
 
 FEATURES = [
     ("MedInc", "Median Income", "%.4f"),
@@ -39,6 +43,12 @@ PRESETS = {
 }
 
 
+@st.cache_resource
+def load_model():
+    """Load and cache the trained house price model."""
+    return joblib.load(MODEL_PATH)
+
+
 def apply_preset():
     """Populate input fields in session state from the selected preset."""
     selected = PRESETS[st.session_state["preset_choice"]]
@@ -46,32 +56,48 @@ def apply_preset():
         st.session_state[key] = float(val)
 
 
-if "preset_choice" not in st.session_state:
-    st.session_state["preset_choice"] = "Default (Custom)"
-    apply_preset()
+def prediction_page():
+    """Render the house price prediction form page."""
+    model = load_model()
 
-st.title("House Price Prediction")
+    if "preset_choice" not in st.session_state:
+        st.session_state["preset_choice"] = "Default (Custom)"
+        apply_preset()
 
-st.selectbox(
-    "Choose Sample Data",
-    options=list(PRESETS.keys()),
-    key="preset_choice",
-    on_change=apply_preset,
-)
+    st.title("House Price Prediction")
 
-with st.form("prediction_form"):
-    for key, label, fmt in FEATURES:
-        st.number_input(label, key=key, format=fmt)
+    st.selectbox(
+        "Choose Sample Data",
+        options=list(PRESETS.keys()),
+        key="preset_choice",
+        on_change=apply_preset,
+    )
 
-    submitted = st.form_submit_button("Predict")
+    with st.form("prediction_form"):
+        col1, col2 = st.columns(2)
+        for idx, (key, label, fmt) in enumerate(FEATURES):
+            target_col = col1 if idx < 4 else col2
+            with target_col:
+                st.number_input(label, key=key, format=fmt)
 
-if submitted:
-    input_values = [st.session_state[key] for key, _, _ in FEATURES]
-    prediction = model.predict([input_values])[0]
-    st.success(f"Predicted House Price: ${prediction * 100000:,.2f}")
+        submitted = st.form_submit_button("Predict")
 
-    preset = PRESETS[st.session_state["preset_choice"]]
-    if preset["actual"] is not None and all(
-        abs(val - preset_val) < 1e-6 for val, preset_val in zip(input_values, preset["values"])
-    ):
-        st.info(f"Actual House Price: ${preset['actual'] * 100000:,.2f}")
+    if submitted:
+        input_values = [st.session_state[key] for key, _, _ in FEATURES]
+        prediction = model.predict([input_values])[0]
+        st.success(f"Predicted House Price: ${prediction * 100000:,.2f}")
+
+        preset = PRESETS[st.session_state["preset_choice"]]
+        if preset["actual"] is not None and all(
+            abs(val - preset_val) < 1e-6 for val, preset_val in zip(input_values, preset["values"])
+        ):
+            st.info(f"Actual House Price: ${preset['actual'] * 100000:,.2f}")
+
+
+pages = [
+    st.Page(prediction_page, title="Predict Price", icon=":material/home:", default=True),
+    st.Page(str(Path(__file__).parent / "pages" / "dataset.py"), title="View & Download Dataset", icon=":material/table_chart:"),
+]
+
+pg = st.navigation(pages)
+pg.run()
